@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local settings and secrets
+.env
+*.local.json
+
+# docs/ is local (user guide, setup, troubleshooting, docmap); only the README's images are uploaded
+/docs/*
+!/docs/images/

@@ -1,0 +1,20 @@
+{
+ "loop_seconds": 1,
+ "scan_seconds": 2,
+ "check_seconds": 5,
+ "retry_seconds": 30,
+ "ifb_device": "ifb-speedbox",
+ "mark_base": 23296,
+ "default_leaf": "fq_codel",
+ "app_leaf": "fq_codel",
+ "no_limit_kbit": 10000000,
+ "lan_unlimited": true,
+ "small_packet_bytes": 128,
+ "lan_ipv4": ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "224.0.0.0/4", "255.255.255.255/32"],
+ "lan_ipv6": ["fe80::/10", "fc00::/7", "ff00::/8"],
+ "max_apps": 200,
+ "speedtest_down_url": "https://speed.cloudflare.com/__down?bytes=25000000",
+ "speedtest_up_url": "https://speed.cloudflare.com/__up",
+ "speedtest_up_bytes": 8000000,
+ "speedtest_share": 0.85
+}
