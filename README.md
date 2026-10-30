@@ -141,8 +141,6 @@ After changing `settings.json`, click **Install / Update service** again.
 
 ## Status
 
-**Done:** per-app upload and download limits, whole-PC smoothing, speed test, LAN exemption, self-healing, clean undo, installer.
-
 **Tested:** CachyOS, kernel 7.2.7, Python 3.14.7, Tk 8.6, iproute2 7.2.0, nftables 1.1.7, systemd 262. tc and nftables setup, real speed limits, LAN exemption and the service logic in a sandbox; the real install with Stremio.
 
 **Not tested yet**
