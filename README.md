@@ -45,8 +45,6 @@ flowchart LR
     N --> I["ifb device<br/>(download lane)"] --> B
 ```
 
-The service watches the rules file and every program start. A matching app is moved into its own cgroup. nftables gives packets from that cgroup a mark, and tc sends marked packets into an HTB class with the app's limit (fq_codel keeps each queue short). Download traffic is redirected to an `ifb` device, where the connection's mark is restored and the same kind of class applies.
-
 ## Quick start
 
 Requirements: Linux with systemd and cgroup v2, Python 3.6+ with tkinter, iproute2, nftables, polkit. The installer adds the missing packages.
@@ -67,25 +65,6 @@ Then open **SpeedBox** from the app menu → **Test my speed** → **Add app**.
 | Installs the service | Root service under systemd, starts now and at every boot |
 
 Options: `--no-service`, `--uninstall` (keeps your rules), `--uninstall --purge` (also deletes them).
-
-### Check your PC (optional)
-
-The installer checks these too. Run inside any folder:
-
-```sh
-python3 -c "import tkinter; print('tkinter', tkinter.TkVersion)"   # tkinter 8.6
-stat -fc %T /sys/fs/cgroup                                          # cgroup2fs
-tc -V; nft --version; pkexec --version                              # one version line each
-```
-
-`cgroup2fs` is required: on old cgroups (`tmpfs`) SpeedBox can't work. The folder path may only hold letters, numbers, spaces and `_ @ . + / -`.
-
-### Prove it works
-
-1. In the window, click **Test my speed** (about 15 s), answer **Yes**. The smoothing boxes fill and **On** is ticked.
-2. **Add app** → **Pick from app menu...** → pick an app that uses the internet → set download to `2` Mbit/s → **Save**.
-3. Start the app and download something. Its row shows **Processes** above 0 and **Download now** at about `2.0 Mbit/s` or less.
-4. Check the service: `systemctl is-active speedbox` prints `active`.
 
 ### Install without the installer
 
