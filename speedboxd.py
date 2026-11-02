@@ -180,9 +180,9 @@ def exec_events(sock):
     while True:
         try:
             data = sock.recv(65536)
-        except BlockingIOError:
-            return pids
-        except OSError:  # ENOBUFS: too many events at once, the regular scan catches the rest
+        # Nothing left to read (BlockingIOError), or ENOBUFS: too many events at once.
+        # The regular scan catches the rest.
+        except OSError:
             return pids
         off = 0
         while off + 16 <= len(data):
@@ -592,9 +592,8 @@ def install(rules_path):
 def uninstall():
     need_root()
     systemctl("disable", "--now", "speedbox.service")
-    for path in (UNIT,):
-        if os.path.exists(path):
-            os.remove(path)
+    if os.path.exists(UNIT):
+        os.remove(UNIT)
     shutil.rmtree(LIB, ignore_errors=True)
     systemctl("daemon-reload")
     cleanup()
