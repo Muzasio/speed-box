@@ -47,38 +47,47 @@ flowchart LR
 
 ## Quick start
 
-Requirements: Linux with systemd and cgroup v2, Python 3.6+ with tkinter, iproute2, nftables, polkit. The installer adds the missing packages.
+Requirements: Linux with systemd and cgroup v2, Python 3.6+ with tkinter, iproute2, nftables, polkit (`pkexec`). SpeedBox uses only the Python standard library, so there is no `pip` or venv step.
+
+**1. System packages**
+
+| Distro | Command |
+|---|---|
+| Arch, CachyOS, Manjaro | `sudo pacman -S --needed python tk iproute2 nftables polkit` |
+| Debian, Ubuntu | `sudo apt install python3 python3-tk iproute2 nftables polkitd pkexec` (older releases: `policykit-1` instead of `polkitd pkexec`) |
+| Fedora | `sudo dnf install python3 python3-tkinter iproute nftables polkit` |
+| openSUSE | `sudo zypper install python3 python3-tk iproute2 nftables polkit` |
+
+**2. Get SpeedBox**
 
 ```sh
 git clone https://github.com/Muzasio/speed-box.git
 cd speed-box
-./install.sh
 ```
 
-Then open **SpeedBox** from the app menu → **Test my speed** → **Add app**.
-
-| The installer | Details |
-|---|---|
-| Installs system packages | Only the missing ones, with `pacman`, `apt-get`, `dnf` or `zypper` |
-| Checks the PC | systemd, cgroup v2, Python 3.6+ with tkinter |
-| Adds the menu entry | `~/.local/share/applications/speedbox.desktop` |
-| Installs the service | Root service under systemd, starts now and at every boot |
-
-Options: `--no-service`, `--uninstall` (keeps your rules), `--uninstall --purge` (also deletes them).
-
-### Install without the installer
+**3. Run it and install the service**
 
 ```sh
-python3 speedbox.py --install-menu   # menu entry
-python3 speedbox.py                  # then click "Install / Update service" (asks your password)
+python3 speedbox.py
+```
+
+In the window click **Install / Update service** (asks your password once), then **Test my speed** → **Add app**. The service runs as root under systemd and starts at every boot.
+
+**4. App menu entry (optional)**
+
+```sh
+python3 speedbox.py --install-menu   # writes ~/.local/share/applications/speedbox.desktop
 ```
 
 ### Remove it
 
 ```sh
-./install.sh --uninstall           # removes the service and the menu entry, keeps your rules
-./install.sh --uninstall --purge   # also deletes your rules (~/.config/speedbox)
+sudo python3 -I speedboxd.py uninstall              # or "Remove service" in the window: stops the service, undoes every network change
+rm -f ~/.local/share/applications/speedbox.desktop  # menu entry
+rm -rf ~/.config/speedbox                           # optional: your rules
 ```
+
+Then delete the `speed-box` folder.
 
 ## Settings
 
