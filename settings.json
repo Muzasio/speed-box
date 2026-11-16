@@ -16,5 +16,8 @@
  "speedtest_down_url": "https://speed.cloudflare.com/__down?bytes=25000000",
  "speedtest_up_url": "https://speed.cloudflare.com/__up",
  "speedtest_up_bytes": 8000000,
- "speedtest_share": 0.85
+ "speedtest_share": 0.85,
+ "diag_ping_host": "one.one.one.one",
+ "diag_max_seconds": 10,
+ "diag_dns_domains": ["wikipedia.org", "github.com", "example.org"]
 }

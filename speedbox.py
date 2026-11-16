@@ -22,6 +22,8 @@ import urllib.request
 from subprocess import PIPE, STDOUT
 from tkinter import messagebox, ttk
 
+import netcheck
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(HERE, "settings.json")) as _f:
     CFG = json.load(_f)
@@ -46,6 +48,40 @@ UNITS = {"Mbit/s": 1000.0, "KB/s": 8 * 1024 / 1000.0, "MB/s": 8 * 1024 * 1024 / 
 MATCH = {"name": "Program name", "cmdline": "Command line contains", "flatpak": "Flatpak app ID"}
 DESKTOP_DIRS = ["/usr/share/applications", "/usr/local/share/applications", os.path.join(DATA, "applications"),
                 "/var/lib/flatpak/exports/share/applications", os.path.join(DATA, "flatpak/exports/share/applications")]
+C = {"bg": "#14161b", "card": "#1d2028", "field": "#262a34", "line": "#323745", "fg": "#e6e8ee", "muted": "#8a92a3",
+     "accent": "#4c8dff", "ok": "#3ecf8e", "warn": "#f5b84e", "bad": "#ff5d5d", "skip": "#5b6170"}
+
+
+def dark_theme(root):
+    """One dark ttk theme for every window, list and dialog."""
+    root.configure(bg=C["bg"])
+    for opt, val in (("*Background", C["bg"]), ("*Foreground", C["fg"]), ("*TCombobox*Listbox.background", C["field"]),
+                     ("*TCombobox*Listbox.foreground", C["fg"]), ("*TCombobox*Listbox.selectBackground", C["accent"])):
+        root.option_add(opt, val)
+    s = ttk.Style(root)
+    s.theme_use("clam")
+    s.configure(".", background=C["bg"], foreground=C["fg"], fieldbackground=C["field"], bordercolor=C["line"],
+                lightcolor=C["card"], darkcolor=C["card"], troughcolor=C["field"], selectbackground=C["accent"],
+                selectforeground="#ffffff", insertcolor=C["fg"], arrowcolor=C["fg"], focuscolor=C["accent"])
+    s.configure("TButton", background=C["card"], padding=(10, 4))
+    s.map("TButton", background=[("pressed", C["line"]), ("active", C["field"])])
+    s.configure("Accent.TButton", background=C["accent"], foreground="#ffffff", bordercolor=C["accent"])
+    s.map("Accent.TButton", background=[("pressed", "#3a6fd0"), ("active", "#5d9bff")])
+    s.configure("TLabelframe", background=C["bg"], bordercolor=C["line"])
+    s.configure("TLabelframe.Label", background=C["bg"], foreground=C["muted"])
+    s.configure("Muted.TLabel", foreground=C["muted"])
+    s.configure("Card.TFrame", background=C["card"])
+    s.configure("Card.TLabel", background=C["card"])
+    s.configure("Head.TLabel", font=("", 15, "bold"))
+    s.configure("Treeview", background=C["card"], fieldbackground=C["card"], rowheight=24)
+    s.configure("Treeview.Heading", background=C["field"], relief="flat")
+    s.map("Treeview", background=[("selected", C["accent"])], foreground=[("selected", "#ffffff")])
+    s.map("Treeview.Heading", background=[("active", C["line"])])
+    for w in ("TEntry", "TSpinbox", "TCombobox"):
+        s.configure(w, background=C["card"])
+        s.map(w, fieldbackground=[("readonly", C["field"])], foreground=[("readonly", C["fg"])])
+    s.configure("TCheckbutton", indicatorbackground=C["field"], indicatorforeground="#ffffff")
+    s.map("TCheckbutton", indicatorbackground=[("selected", C["accent"])], background=[("active", C["bg"])])
 
 
 def read(path):
@@ -216,7 +252,7 @@ class AppDialog(tk.Toplevel):
                           "Program name: the name in the process list, like stremio or steam.\n"
                           "Torrent apps (Stremio): keep upload at 1 Mbit/s or more, or other\n"
                           "people stop sending to you and the download slows down.",
-                  foreground="gray").grid(row=6, column=0, columnspan=4, sticky="w", pady=6)
+                  style="Muted.TLabel").grid(row=6, column=0, columnspan=4, sticky="w", pady=6)
         b = ttk.Frame(f)
         b.grid(row=7, column=0, columnspan=4, sticky="e")
         ttk.Button(b, text="Cancel", command=self.destroy).pack(side="right")
@@ -307,7 +343,7 @@ def pick_list(master, title, cols, rows, many=False):
     tree.bind("<Double-1>", done)
     b = ttk.Frame(f)
     b.pack(fill="x")
-    ttk.Label(b, text="Ctrl+click to pick more than one." if many else "", foreground="gray").pack(side="left")
+    ttk.Label(b, text="Ctrl+click to pick more than one." if many else "", style="Muted.TLabel").pack(side="left")
     ttk.Button(b, text="Cancel", command=win.destroy).pack(side="right")
     ttk.Button(b, text="Add", command=done).pack(side="right", padx=4)
     entry.focus_set()
@@ -316,9 +352,108 @@ def pick_list(master, title, cols, rows, many=False):
     return picked
 
 
+class NetCheck(tk.Toplevel):
+    """Runs netcheck.py's steps one by one and shows each result with a colored dot, then a verdict."""
+
+    def __init__(self, master):
+        tk.Toplevel.__init__(self, master)
+        self.title("Internet check")
+        self.transient(master)
+        self.minsize(720, 0)
+        f = ttk.Frame(self, padding=16)
+        f.pack(fill="both", expand=True)
+        ttk.Label(f, text="Internet check", style="Head.TLabel").pack(anchor="w")
+        ttk.Label(f, style="Muted.TLabel", text="Finds where a slow connection breaks. Takes about 40 seconds and "
+                  "uses up to 40 MB.\nNo IP address is shown or saved.").pack(anchor="w", pady=(2, 12))
+        grid = ttk.Frame(f, style="Card.TFrame", padding=(12, 8))
+        grid.pack(fill="x")
+        grid.columnconfigure(3, weight=1)
+        self.rows = {}
+        for r, (key, title) in enumerate(netcheck.STEPS):
+            dot = tk.Canvas(grid, width=12, height=12, bg=C["card"], highlightthickness=0)
+            dot.create_oval(1, 1, 11, 11, fill=C["skip"], outline="", tags="dot")
+            dot.grid(row=r, column=0, padx=(0, 10), pady=5)
+            ttk.Label(grid, text=title, style="Card.TLabel", width=24).grid(row=r, column=1, sticky="w")
+            value = ttk.Label(grid, text="waiting", style="Card.TLabel", foreground=C["muted"], width=30)
+            value.grid(row=r, column=2, sticky="w")
+            hint = ttk.Label(grid, text="", style="Card.TLabel", foreground=C["muted"], wraplength=330)
+            hint.grid(row=r, column=3, sticky="w")
+            self.rows[key] = (dot, value, hint)
+        card = tk.Frame(f, bg=C["card"])
+        card.pack(fill="x", pady=(12, 0))
+        self.strip = tk.Frame(card, bg=C["skip"], width=6)
+        self.strip.pack(side="left", fill="y")
+        inner = ttk.Frame(card, style="Card.TFrame", padding=12)
+        inner.pack(side="left", fill="both", expand=True)
+        self.head = ttk.Label(inner, text="Checking...", style="Card.TLabel", font=("", 13, "bold"))
+        self.head.pack(anchor="w")
+        self.advice = ttk.Label(inner, text="", style="Card.TLabel", wraplength=640)
+        self.advice.pack(anchor="w", pady=(4, 0))
+        b = ttk.Frame(f)
+        b.pack(fill="x", pady=(12, 0))
+        ttk.Button(b, text="Close", command=self.destroy).pack(side="right")
+        self.again = ttk.Button(b, text="Run again", style="Accent.TButton", command=self.start)
+        self.again.pack(side="right", padx=6)
+        self.bind("<Escape>", lambda e: self.destroy())
+        self.start()
+
+    def ui(self, fn, *args):
+        """Runs fn in the window's thread; does nothing once the window is closed."""
+        def call():
+            if self.winfo_exists():
+                fn(*args)
+        try:
+            self.after(0, call)
+        except (RuntimeError, tk.TclError):
+            pass
+
+    def start(self):
+        if self.master.busy:
+            return messagebox.showinfo("SpeedBox", "Another test is running. Try again in a moment.", parent=self)
+        self.master.busy = True
+        self.again.state(["disabled"])
+        for dot, value, hint in self.rows.values():
+            dot.itemconfig("dot", fill=C["skip"])
+            value.config(text="waiting", foreground=C["muted"])
+            hint.config(text="")
+        self.mark(netcheck.STEPS[0][0])
+        self.verdict_ui("skip", "Checking...", "")
+        smooth = bool(self.master.rules["smooth"].get("on"))
+
+        def work():
+            try:
+                res = netcheck.run(lambda *a: self.ui(self.show, *a), smooth)
+                self.ui(self.verdict_ui, *netcheck.verdict(res))
+            finally:
+                self.master.busy = False
+                self.ui(self.again.state, ["!disabled"])
+        threading.Thread(target=work, daemon=True).start()
+
+    def mark(self, key):
+        """Shows which step is running now."""
+        dot, value, _ = self.rows[key]
+        dot.itemconfig("dot", fill=C["accent"])
+        value.config(text="testing...", foreground=C["accent"])
+
+    def show(self, key, value, level, hint):
+        dot, val, hnt = self.rows[key]
+        dot.itemconfig("dot", fill=C[level])
+        val.config(text=value, foreground=C["fg"] if level != "skip" else C["muted"])
+        hnt.config(text=hint)
+        keys = [k for k, _ in netcheck.STEPS]
+        if keys.index(key) + 1 < len(keys):
+            self.mark(keys[keys.index(key) + 1])
+
+    def verdict_ui(self, level, head, advice):
+        self.strip.config(bg=C[level])
+        self.head.config(text=head, foreground=C[level] if level != "skip" else C["fg"])
+        self.advice.config(text=advice)
+
+
 class SpeedBox(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
+        dark_theme(self)
         self.title("SpeedBox")
         self.minsize(820, 480)
         try:
@@ -333,7 +468,8 @@ class SpeedBox(tk.Tk):
         top.pack(fill="x", padx=6, pady=4)
         self.svc = ttk.Label(top, text="...")
         self.svc.pack(side="left")
-        ttk.Button(top, text="Add to app menu", command=self.menu).pack(side="right")
+        ttk.Button(top, text="Internet check", style="Accent.TButton", command=lambda: NetCheck(self)).pack(side="right")
+        ttk.Button(top, text="Add to app menu", command=self.menu).pack(side="right", padx=4)
         ttk.Button(top, text="Remove service", command=lambda: self.root_cmd("uninstall")).pack(side="right", padx=4)
         ttk.Button(top, text="Install / Update service", command=lambda: self.root_cmd("install")).pack(side="right")
 
@@ -357,7 +493,7 @@ class SpeedBox(tk.Tk):
         ttk.Combobox(sm, textvariable=self.iface, values=["auto"] + devices(), width=12).grid(row=0, column=7)
         ttk.Button(sm, text="Apply", command=self.apply_smooth).grid(row=0, column=8, padx=(12, 2))
         ttk.Button(sm, text="Test my speed", command=self.speedtest).grid(row=0, column=9, padx=2)
-        self.other = ttk.Label(sm, text="", foreground="gray")
+        self.other = ttk.Label(sm, text="", style="Muted.TLabel")
         self.other.grid(row=1, column=0, columnspan=10, sticky="w", pady=(4, 0))
 
         box = ttk.LabelFrame(self, text="App limits", padding=6)
@@ -489,10 +625,10 @@ class SpeedBox(tk.Tk):
         installed = os.path.exists(UNIT)
         if st:
             self.svc.config(text="Service: running on %s" % (st.get("iface") or "(nothing to limit)"),
-                            foreground="dark green")
+                            foreground=C["ok"])
         else:
             self.svc.config(text="Service: %s" % ("installed but not running" if installed else "not installed"),
-                            foreground="red")
+                            foreground=C["bad"])
         if st.get("error"):
             self.msg.config(text="Service problem: " + st["error"])
         now, u = time.monotonic(), self.rules["unit"]

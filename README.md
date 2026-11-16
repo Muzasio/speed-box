@@ -27,6 +27,7 @@ A torrent-based app like Stremio keeps uploading even after a movie is downloade
 - **Find apps three ways:** program name, text in the command line, or Flatpak app ID; pick from running programs or the app menu.
 - **Helpers included:** programs an app starts are limited too (Stremio's torrent engine is a separate `node` process).
 - **Instant:** the kernel reports every program start, so a new app is limited before it connects.
+- **Internet check:** one click tests cable / Wi-Fi, router, internet line, DNS, download, upload and lag under load, then names the problem in plain words. No root, and no IP address is shown or saved.
 - **Whole-PC smoothing:** keeps total traffic under your line speed; a built-in speed test suggests the numbers.
 - **LAN stays fast:** traffic to your own network is never limited.
 - **Torrent friendly:** tiny "got it" packets don't count against upload limits, so a low upload limit can't choke the download.
@@ -106,6 +107,9 @@ Your rules are set in the window and saved in `~/.config/speedbox/rules.json`. F
 | `small_packet_bytes` | `128` | Packets this small skip upload limits ("got it" packets) |
 | `max_apps` | `200` | Most app rules allowed |
 | `speedtest_*` | Cloudflare | Speed test addresses, size, and the share (85 %) suggested for smoothing |
+| `diag_ping_host` | `one.one.one.one` | Server the Internet check pings |
+| `diag_max_seconds` | `10` | Longest time for each download and upload test |
+| `diag_dns_domains` | 3 domains | The DNS test looks up a random new name under each one |
 
 After changing `settings.json`, click **Install / Update service** again.
 
